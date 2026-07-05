@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dream-forest",
+      "cwd": "/Users/kirillginko/Documents/Code/nextjs/dream-forest",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["dev", "--port", "3111"],
+      "port": 3111
+    }
+  ]
+}

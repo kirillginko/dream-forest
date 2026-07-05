@@ -1,0 +1,203 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { audioEngine } from "@/lib/audio";
+import { playerPos, playerYaw, useDreamStore, SHARD_GOAL } from "@/lib/store";
+import { CITY_PALETTE, paletteForSeed, RIFT_PALETTE } from "../world/palettes";
+import { nearestShard } from "@/lib/shardTracker";
+
+const transportBtn =
+  "pointer-events-auto border border-amber-200/40 px-2 py-1 text-[10px] tracking-[0.2em] " +
+  "text-amber-100/80 bg-black/40 hover:bg-amber-100/10 hover:border-amber-200/70 transition-colors";
+
+function ShardCompass() {
+  const compass = useRef<HTMLDivElement>(null);
+  const needle = useRef<HTMLDivElement>(null);
+  const distance = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = requestAnimationFrame(update);
+      const target = nearestShard(playerPos);
+      if (!target) {
+        if (compass.current) compass.current.style.opacity = "0.28";
+        if (distance.current) distance.current.textContent = "NO SIGNAL";
+        return;
+      }
+      if (compass.current) compass.current.style.opacity = "1";
+      const dx = target.x - playerPos.x;
+      const dz = target.z - playerPos.z;
+      const targetYaw = Math.atan2(-dx, -dz);
+      const relativeAngle = targetYaw - playerYaw.value;
+      if (needle.current) {
+        // CSS rotates clockwise, while the world yaw increases to the left.
+        needle.current.style.transform = `rotate(${-relativeAngle}rad)`;
+      }
+      if (distance.current) {
+        distance.current.textContent = `${Math.round(Math.hypot(dx, dz))}M`;
+      }
+    };
+    update();
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  return (
+    <div
+      ref={compass}
+      className="absolute left-1/2 top-4 flex -translate-x-1/2 flex-col items-center gap-1 transition-opacity"
+    >
+      <div className="relative h-14 w-24 border-x border-cyan-100/15 bg-gradient-to-b from-black/50 to-transparent shadow-[0_0_18px_rgba(84,247,255,0.1)]">
+        <div
+          ref={needle}
+          className="absolute left-[28px] top-1 h-10 w-10 transition-transform duration-100"
+        >
+          <div className="absolute left-1/2 top-0 h-0 w-0 -translate-x-1/2 border-x-[7px] border-b-[24px] border-x-transparent border-b-cyan-200 drop-shadow-[0_0_5px_#54f7ff]" />
+          <div className="absolute left-1/2 top-[18px] h-3 w-1 -translate-x-1/2 bg-cyan-200/70" />
+        </div>
+        <div className="absolute bottom-1 left-1/2 h-px w-14 -translate-x-1/2 bg-gradient-to-r from-transparent via-cyan-100/40 to-transparent" />
+      </div>
+      <div className="bg-black/45 px-2 py-0.5 text-[8px] tracking-[0.22em] text-cyan-100/65">
+        NEXT SHARD · <span ref={distance}>NO SIGNAL</span>
+      </div>
+    </div>
+  );
+}
+
+/** Minimal mysterious overlay: seed, dream-state label, shard count, prompts. */
+export function Hud() {
+  const seed = useDreamStore((s) => s.seed);
+  const realm = useDreamStore((s) => s.realm);
+  const shards = useDreamStore((s) => s.shards);
+  const locked = useDreamStore((s) => s.locked);
+  const lookMode = useDreamStore((s) => s.lookMode);
+  const nearInteract = useDreamStore((s) => s.nearInteract);
+  const shiftedAt = useDreamStore((s) => s.shiftedAt);
+  const musicPlaying = useDreamStore((s) => s.musicPlaying);
+  const trackLabel = useDreamStore((s) => s.trackLabel);
+  const palette =
+    realm === "rift" ? RIFT_PALETTE : realm === "city" ? CITY_PALETTE : paletteForSeed(seed);
+
+  // Keyboard shortcuts for the player — the cursor is hidden while
+  // pointer-locked, so the on-screen transport buttons alone aren't usable
+  // mid-game. M toggles play/pause, [ and ] skip tracks.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code === "KeyM") audioEngine.togglePlay();
+      else if (e.code === "BracketRight") audioEngine.next();
+      else if (e.code === "BracketLeft") audioEngine.previous();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  return (
+    <div className="pointer-events-none fixed inset-0 select-none font-mono">
+      {/* vignette + faint scanlines for the CRT dream feel */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55) 100%)",
+        }}
+      />
+      <div
+        className="absolute inset-0 opacity-[0.07]"
+        style={{
+          background:
+            "repeating-linear-gradient(0deg, transparent 0 2px, #000 2px 3px)",
+        }}
+      />
+
+      {/* dream-shift flash */}
+      {shiftedAt > 0 && (
+        <div key={shiftedAt} className="absolute inset-0 animate-dream-flash bg-white" />
+      )}
+
+      {/* top-left: seed + state + shard progress */}
+      <div className="absolute left-4 top-4 space-y-1 bg-black/35 px-3 py-2">
+        <div className="text-[10px] tracking-[0.3em] text-amber-200/90">
+          {palette.label}
+        </div>
+        <div className="text-[9px] tracking-[0.2em] text-amber-100/50">
+          SEED: {seed.toUpperCase()}
+        </div>
+        {realm !== "rift" && (
+          <div className="text-[9px] tracking-[0.2em] text-amber-100/50">
+            SHARDS: {shards} / {SHARD_GOAL}
+          </div>
+        )}
+        {realm === "rift" && (
+          <div className="text-[9px] tracking-[0.2em] text-fuchsia-200/70">
+            YOU ARE IN THE RIFT
+          </div>
+        )}
+        {realm === "city" && (
+          <div className="text-[9px] tracking-[0.2em] text-cyan-200/70">
+            THE CITY REMEMBERS YOU
+          </div>
+        )}
+      </div>
+
+      {realm !== "rift" && <ShardCompass />}
+
+      {/* bottom-left: music transport */}
+      <div className="absolute bottom-4 left-4 flex items-center gap-2">
+        <span className="bg-black/35 px-2 py-1 text-[9px] tracking-[0.25em] text-amber-100/50">
+          {trackLabel ? trackLabel.toUpperCase() : "SIGNAL"}
+        </span>
+        <button
+          className={transportBtn}
+          onClick={() => audioEngine.previous()}
+          aria-label="Previous track"
+        >
+          PREV
+        </button>
+        <button
+          className={transportBtn}
+          onClick={() => audioEngine.togglePlay()}
+          aria-label={musicPlaying ? "Pause" : "Play"}
+        >
+          {musicPlaying ? "PAUSE" : "PLAY"}
+        </button>
+        <button
+          className={transportBtn}
+          onClick={() => audioEngine.next()}
+          aria-label="Next track"
+        >
+          NEXT
+        </button>
+      </div>
+
+      {/* center: enter prompt */}
+      {!locked && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+          <div className="bg-black/50 px-6 py-3 text-xs tracking-[0.4em] text-amber-200">
+            CLICK TO ENTER THE DREAM
+          </div>
+          <div className="text-[9px] tracking-[0.3em] text-amber-100/50">
+            {lookMode === "drag" ? "DRAG — LOOK" : "MOUSE — LOOK"} &nbsp;·&nbsp;
+            WASD — WANDER &nbsp;·&nbsp; SHIFT — HURRY &nbsp;·&nbsp; E — TOUCH
+          </div>
+          <div className="text-[9px] tracking-[0.3em] text-amber-100/40">
+            M — PLAY/PAUSE &nbsp;·&nbsp; [ ] — SKIP TRACK
+          </div>
+        </div>
+      )}
+
+      {/* interact prompt */}
+      {locked && nearInteract && (
+        <div className="absolute inset-x-0 bottom-16 flex justify-center">
+          <div className="animate-pulse bg-black/50 px-4 py-2 text-[10px] tracking-[0.3em] text-amber-200">
+            {nearInteract}
+          </div>
+        </div>
+      )}
+
+      {/* crosshair dot — only meaningful when the cursor is captured */}
+      {locked && lookMode === "lock" && (
+        <div className="absolute left-1/2 top-1/2 h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-100/60" />
+      )}
+    </div>
+  );
+}
