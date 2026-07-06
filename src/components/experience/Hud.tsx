@@ -5,12 +5,13 @@ import { audioEngine } from "@/lib/audio";
 import { playerPos, playerYaw, useDreamStore, SHARD_GOAL } from "@/lib/store";
 import { CITY_PALETTE, paletteForSeed, RIFT_PALETTE } from "../world/palettes";
 import { nearestShard } from "@/lib/shardTracker";
+import { DOJO_EXIT_X, DOJO_EXIT_Z } from "../world/DojoMaze";
 
 const transportBtn =
   "pointer-events-auto border border-amber-200/40 px-2 py-1 text-[10px] tracking-[0.2em] " +
   "text-amber-100/80 bg-black/40 hover:bg-amber-100/10 hover:border-amber-200/70 transition-colors";
 
-function ShardCompass() {
+function WaypointCompass({ exit = false }: { exit?: boolean }) {
   const compass = useRef<HTMLDivElement>(null);
   const needle = useRef<HTMLDivElement>(null);
   const distance = useRef<HTMLSpanElement>(null);
@@ -19,7 +20,7 @@ function ShardCompass() {
     let frame = 0;
     const update = () => {
       frame = requestAnimationFrame(update);
-      const target = nearestShard(playerPos);
+      const target = exit ? { x: DOJO_EXIT_X, z: DOJO_EXIT_Z } : nearestShard(playerPos);
       if (!target) {
         if (compass.current) compass.current.style.opacity = "0.28";
         if (distance.current) distance.current.textContent = "NO SIGNAL";
@@ -40,7 +41,7 @@ function ShardCompass() {
     };
     update();
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [exit]);
 
   return (
     <div
@@ -58,7 +59,7 @@ function ShardCompass() {
         <div className="absolute bottom-1 left-1/2 h-px w-14 -translate-x-1/2 bg-gradient-to-r from-transparent via-cyan-100/40 to-transparent" />
       </div>
       <div className="bg-black/45 px-2 py-0.5 text-[8px] tracking-[0.22em] text-cyan-100/65">
-        NEXT SHARD · <span ref={distance}>NO SIGNAL</span>
+        {exit ? "MAZE EXIT" : "NEXT SHARD"} · <span ref={distance}>NO SIGNAL</span>
       </div>
     </div>
   );
@@ -73,6 +74,8 @@ export function Hud() {
   const lookMode = useDreamStore((s) => s.lookMode);
   const nearInteract = useDreamStore((s) => s.nearInteract);
   const shiftedAt = useDreamStore((s) => s.shiftedAt);
+  const floorTransitionAt = useDreamStore((s) => s.floorTransitionAt);
+  const mazeEndingAt = useDreamStore((s) => s.mazeEndingAt);
   const musicPlaying = useDreamStore((s) => s.musicPlaying);
   const trackLabel = useDreamStore((s) => s.trackLabel);
   const palette =
@@ -90,6 +93,24 @@ export function Hud() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  if (realm === "rift" && mazeEndingAt > 0) {
+    return (
+      <div className="pointer-events-none fixed inset-0 z-40 select-none font-mono">
+        <div className="absolute left-1/2 top-[20%] -translate-x-1/2 text-center">
+          <div className="text-lg tracking-[0.5em] text-amber-100/85">
+            猫は次の夢を知っている
+          </div>
+          <div className="mt-4 text-[9px] tracking-[0.35em] text-amber-100/45">
+            THE CAT KNOWS THE NEXT DREAM
+          </div>
+        </div>
+        <div className="absolute bottom-[18%] left-1/2 -translate-x-1/2 text-[10px] tracking-[0.45em] text-amber-100/55">
+          夢はまだ終わらない
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="pointer-events-none fixed inset-0 select-none font-mono">
@@ -113,6 +134,12 @@ export function Hud() {
       {shiftedAt > 0 && (
         <div key={shiftedAt} className="absolute inset-0 animate-dream-flash bg-white" />
       )}
+      {floorTransitionAt > 0 && (
+        <div
+          key={floorTransitionAt}
+          className="absolute inset-0 z-50 animate-floor-transition bg-black"
+        />
+      )}
 
       {/* top-left: seed + state + shard progress */}
       <div className="absolute left-4 top-4 space-y-1 bg-black/35 px-3 py-2">
@@ -129,7 +156,7 @@ export function Hud() {
         )}
         {realm === "rift" && (
           <div className="text-[9px] tracking-[0.2em] text-fuchsia-200/70">
-            YOU ARE IN THE RIFT
+            FIND THE LAST DOOR
           </div>
         )}
         {realm === "city" && (
@@ -139,7 +166,7 @@ export function Hud() {
         )}
       </div>
 
-      {realm !== "rift" && <ShardCompass />}
+      <WaypointCompass exit={realm === "rift"} />
 
       {/* bottom-left: music transport */}
       <div className="absolute bottom-4 left-4 flex items-center gap-2">

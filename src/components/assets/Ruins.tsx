@@ -14,15 +14,21 @@ export function Ruins({ world }: { world: WorldData }) {
   const archParts = useRef<THREE.InstancedMesh>(null);
   const pillars = useRef<THREE.InstancedMesh>(null);
   const circle = useRef<THREE.InstancedMesh>(null);
+  const walls = useRef<THREE.InstancedMesh>(null);
+  const shrineBases = useRef<THREE.InstancedMesh>(null);
+  const shrineStones = useRef<THREE.InstancedMesh>(null);
 
-  const { arches, pillars: pillarData, circleStones, palette } = world;
+  const { arches, pillars: pillarData, circleStones, ruinWalls, shrines, palette } = world;
   const stoneMap = useMemo(
     () => repeated(getDetailTextures(world.seedNum).stone, 1, 1),
     [world.seedNum]
   );
 
   useLayoutEffect(() => {
-    if (!archParts.current || !pillars.current || !circle.current) return;
+    if (
+      !archParts.current || !pillars.current || !circle.current || !walls.current ||
+      !shrineBases.current || !shrineStones.current
+    ) return;
 
     // Each arch = left post + right post + lintel, expanded to 3 placements.
     const parts: Placement[] = arches.flatMap((p) => [
@@ -71,7 +77,37 @@ export function Ruins({ world }: { world: WorldData }) {
       },
       (p, c) => c.set(palette.stone).offsetHSL(0, 0, (p.variant - 0.5) * 0.1)
     );
-  }, [arches, pillarData, circleStones, palette]);
+
+    setInstances(
+      walls.current,
+      ruinWalls,
+      (p, o) => {
+        o.scale.set(p.scale * (3.6 + p.variant * 3.2), p.scale * (0.65 + p.variant * 1.5), p.scale * 0.62);
+        o.translateY(p.scale * (0.32 + p.variant * 0.75));
+      },
+      (p, c) => c.set(palette.stone).offsetHSL(-0.02, -0.05, (p.variant - 0.5) * 0.14)
+    );
+
+    setInstances(
+      shrineBases.current,
+      shrines,
+      (p, o) => {
+        o.scale.set(p.scale * 3.8, p.scale * 0.7, p.scale * 3.1);
+        o.translateY(p.scale * 0.35);
+      },
+      (p, c) => c.set(palette.stone).offsetHSL(0, -0.08, -0.04 + p.variant * 0.07)
+    );
+
+    setInstances(
+      shrineStones.current,
+      shrines,
+      (p, o) => {
+        o.scale.set(p.scale * 1.05, p.scale * (2.6 + p.variant * 1.3), p.scale * 0.75);
+        o.translateY(p.scale * (2.0 + p.variant * 0.65));
+      },
+      (p, c) => c.set(palette.stone).offsetHSL(0.03, 0.04, 0.03 + p.variant * 0.1)
+    );
+  }, [arches, pillarData, circleStones, ruinWalls, shrines, palette]);
 
   return (
     <group>
@@ -86,6 +122,18 @@ export function Ruins({ world }: { world: WorldData }) {
       <instancedMesh ref={circle} args={[undefined, undefined, circleStones.length]} frustumCulled={false}>
         <boxGeometry args={[1, 1, 1]} />
         <meshStandardMaterial flatShading roughness={1} map={stoneMap} bumpMap={stoneMap} bumpScale={0.3} />
+      </instancedMesh>
+      <instancedMesh ref={walls} args={[undefined, undefined, ruinWalls.length]} frustumCulled={false}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial flatShading roughness={1} map={stoneMap} bumpMap={stoneMap} bumpScale={0.36} />
+      </instancedMesh>
+      <instancedMesh ref={shrineBases} args={[undefined, undefined, shrines.length]} frustumCulled={false}>
+        <boxGeometry args={[1, 1, 1]} />
+        <meshStandardMaterial flatShading roughness={1} map={stoneMap} bumpMap={stoneMap} bumpScale={0.32} />
+      </instancedMesh>
+      <instancedMesh ref={shrineStones} args={[undefined, undefined, shrines.length]} frustumCulled={false}>
+        <dodecahedronGeometry args={[1, 0]} />
+        <meshStandardMaterial flatShading roughness={0.92} map={stoneMap} bumpMap={stoneMap} bumpScale={0.4} />
       </instancedMesh>
     </group>
   );

@@ -5,6 +5,11 @@ export interface Collider {
   x: number;
   z: number;
   r: number;
+  /** Optional axis-aligned box extents, used by architectural walls. */
+  halfX?: number;
+  halfZ?: number;
+  yMin?: number;
+  yMax?: number;
 }
 
 // Colliders are registered per chunk and dropped when the chunk unloads.
@@ -26,6 +31,16 @@ export function canMoveTo(
 ): boolean {
   for (const list of registry.values()) {
     for (const c of list) {
+      if (c.yMin !== undefined && c.yMax !== undefined && (to.y < c.yMin || to.y > c.yMax)) {
+        continue;
+      }
+      if (c.halfX !== undefined && c.halfZ !== undefined) {
+        if (
+          Math.abs(to.x - c.x) < c.halfX + playerRadius &&
+          Math.abs(to.z - c.z) < c.halfZ + playerRadius
+        ) return false;
+        continue;
+      }
       const dx = to.x - c.x;
       const dz = to.z - c.z;
       const rr = c.r + playerRadius;

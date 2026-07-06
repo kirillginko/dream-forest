@@ -20,3 +20,13 @@ body {
 .animate-dream-flash {
   animation: dream-flash 1.4s ease-out forwards;
 }
+
+@keyframes floor-transition {
+  0% { opacity: 0; }
+  38%, 58% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.animate-floor-transition {
+  animation: floor-transition 1s ease-in-out forwards;
+}

@@ -22,6 +22,10 @@ interface DreamStore {
   nearInteract: string | null;
   /** Timestamp of the last dream shift, drives the HUD flash. */
   shiftedAt: number;
+  /** Timestamp used by the dojo's between-floor blackout animation. */
+  floorTransitionAt: number;
+  /** Non-zero while the post-maze cat epilogue is playing. */
+  mazeEndingAt: number;
   /** Mirrors the audio element's play state for the HUD transport controls. */
   musicPlaying: boolean;
   /** Display name of the currently loaded track, e.g. "Dreamscape". */
@@ -31,6 +35,8 @@ interface DreamStore {
   setNearInteract: (prompt: string | null) => void;
   setMusicPlaying: (playing: boolean) => void;
   setTrackLabel: (label: string) => void;
+  setFloorTransitionAt: (time: number) => void;
+  setMazeEndingAt: (time: number) => void;
   shiftDream: () => void;
   collectShard: () => void;
   enterRift: () => void;
@@ -47,6 +53,8 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   shards: 0,
   nearInteract: null,
   shiftedAt: 0,
+  floorTransitionAt: 0,
+  mazeEndingAt: 0,
   musicPlaying: false,
   trackLabel: "",
   setLocked: (locked) => set({ locked }),
@@ -54,6 +62,8 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
   setNearInteract: (nearInteract) => set({ nearInteract }),
   setMusicPlaying: (musicPlaying) => set({ musicPlaying }),
   setTrackLabel: (trackLabel) => set({ trackLabel }),
+  setFloorTransitionAt: (floorTransitionAt) => set({ floorTransitionAt }),
+  setMazeEndingAt: (mazeEndingAt) => set({ mazeEndingAt }),
   shiftDream: () =>
     set((s) => ({
       seed: nextSeed(s.seed),
@@ -72,6 +82,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
     set((s) => ({
       seed: nextSeed(s.seed) + "-rift",
       realm: "rift",
+      mazeEndingAt: 0,
       shards: 0,
       shiftedAt: Date.now(),
       nearInteract: null,
@@ -95,6 +106,7 @@ export const useDreamStore = create<DreamStore>((set, get) => ({
       seed: nextSeed(s.seed),
       realm: "forest",
       shards: 0,
+      mazeEndingAt: 0,
       shiftedAt: Date.now(),
       nearInteract: null,
     })),

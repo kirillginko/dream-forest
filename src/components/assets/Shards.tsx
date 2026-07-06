@@ -12,6 +12,7 @@ import {
   registerShard,
   unregisterShard,
 } from "@/lib/shardTracker";
+import { soundEffects } from "@/lib/soundEffects";
 
 const COLLECT_RADIUS = 2.6;
 const BEAM_HEIGHT = 9;
@@ -84,6 +85,7 @@ export function ShardPickups({
           return next;
         });
         markShardCollected(shardId(i));
+        soundEffects.play("shard", 0.72);
         useDreamStore.getState().collectShard();
       }
     });

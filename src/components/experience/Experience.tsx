@@ -1,10 +1,23 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { World } from "../world/World";
 import { Player } from "./Player";
 import { PostFX } from "./PostFX";
 import { Hud } from "./Hud";
+import { useDreamStore } from "@/lib/store";
+import { soundEffects } from "@/lib/soundEffects";
+
+function TransitionAudio() {
+  const shiftedAt = useDreamStore((state) => state.shiftedAt);
+  const previous = useRef(shiftedAt);
+  useEffect(() => {
+    if (shiftedAt > 0 && shiftedAt !== previous.current) soundEffects.play("transition", 0.7);
+    previous.current = shiftedAt;
+  }, [shiftedAt]);
+  return null;
+}
 
 export default function Experience() {
   return (
@@ -19,6 +32,7 @@ export default function Experience() {
         <PostFX />
       </Canvas>
       <Hud />
+      <TransitionAudio />
     </div>
   );
 }

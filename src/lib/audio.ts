@@ -21,15 +21,30 @@ export const audioLevels: AudioLevels = {
   amplitude: 0,
 };
 
-/** The soundtrack — every track in public/music, played in shuffled loop. */
-const MUSIC_TRACKS = [
+const FOREST_TRACKS = [
+  "/music/The Architecture of Drift.mp3",
   "/music/Dreamscape.mp3",
   "/music/Dreamscape 2.mp3",
+];
+
+const CITY_TRACKS = [
   "/music/Dreaming in the Machine.mp3",
   "/music/Neon Circuit.mp3",
   "/music/Neon Circuit 2.mp3",
   "/music/Neon Circuit 3.mp3",
 ];
+
+const BONUS_ROOM_TRACKS = [
+  "/music/Lounge Intermission.mp3",
+  "/music/Lounge Intermission 2.mp3",
+];
+
+type MusicRealm = "forest" | "city" | "rift";
+
+function tracksForRealm(realm: MusicRealm): string[] {
+  if (realm === "rift") return BONUS_ROOM_TRACKS;
+  return realm === "city" ? CITY_TRACKS : FOREST_TRACKS;
+}
 
 const FFT_SIZE = 1024;
 
@@ -57,6 +72,7 @@ class AudioEngine {
   private mediaNode: MediaElementAudioSourceNode | null = null;
   private playlist: string[] = [];
   private trackIndex = 0;
+  private realm: MusicRealm = useDreamStore.getState().realm;
   source: AudioSource = "none";
 
   /** Shared AudioContext for one-off SFX (footsteps, etc) — same context
@@ -117,7 +133,7 @@ class AudioEngine {
     this.trackIndex = (this.trackIndex + 1) % this.playlist.length;
     // Reshuffle once we've cycled the whole playlist, so it doesn't repeat
     // in the same order forever.
-    if (this.trackIndex === 0) this.playlist = shuffled(MUSIC_TRACKS);
+    if (this.trackIndex === 0) this.playlist = shuffled(tracksForRealm(this.realm));
     this.playCurrentTrack();
   };
 
@@ -142,10 +158,30 @@ class AudioEngine {
       this.audioEl = el;
     }
 
-    this.playlist = shuffled(MUSIC_TRACKS);
+    this.playlist = shuffled(tracksForRealm(this.realm));
     this.trackIndex = 0;
     this.playCurrentTrack();
     this.source = "music";
+  }
+
+  /** Swap soundtracks when the player crosses between dream realms. */
+  setRealm(realm: MusicRealm) {
+    if (realm === this.realm) return;
+    this.realm = realm;
+    if (this.source !== "music" || !this.audioEl) return;
+
+    const wasPlaying = !this.audioEl.paused;
+    this.playlist = shuffled(tracksForRealm(realm));
+    this.trackIndex = 0;
+
+    if (wasPlaying) {
+      this.playCurrentTrack();
+      return;
+    }
+
+    const url = this.playlist[0];
+    this.audioEl.src = encodeURI(url);
+    useDreamStore.getState().setTrackLabel(trackLabelFromUrl(url));
   }
 
   /** Toggle play/pause. Starts the playlist from scratch if never started. */
@@ -193,3 +229,7 @@ class AudioEngine {
 }
 
 export const audioEngine = new AudioEngine();
+
+useDreamStore.subscribe((state, previousState) => {
+  if (state.realm !== previousState.realm) audioEngine.setRealm(state.realm);
+});

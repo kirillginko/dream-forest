@@ -124,8 +124,8 @@ export function paletteForSeed(seed: string): Palette {
  * through the origin altar; unmistakably not the forest.
  */
 export const RIFT_PALETTE: Palette = {
-  name: "the-rift",
-  label: "SIGNAL DISTORTION",
+  name: "forgotten-dojo",
+  label: "忘却の間 / THE FORGOTTEN HALL",
   sky: "#050208",
   horizon: "#ff2ec4",
   fog: "#1a0630",

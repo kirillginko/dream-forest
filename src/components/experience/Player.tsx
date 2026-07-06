@@ -9,6 +9,8 @@ import { playerPos, playerYaw, useDreamStore } from "@/lib/store";
 import { canMoveTo } from "@/lib/collision";
 import { terrainHeight } from "../world/terrain";
 import { hashString } from "@/lib/seed";
+import { dojoFloorHeight } from "../world/DojoMaze";
+import { soundEffects } from "@/lib/soundEffects";
 
 const WALK_SPEED = 2.8;
 const RUN_SPEED = 6.4;
@@ -43,6 +45,7 @@ function enterWorld() {
   store.setLocked(true);
   // First click doubles as the audio-context gesture the soundtrack needs.
   audioEngine.usePlaylist();
+  soundEffects.preload();
 }
 
 /**
@@ -153,7 +156,7 @@ export function Player() {
 
   // Spawn at the clearing's edge, facing the stone circle (-Z).
   useEffect(() => {
-    const spawnFloor = realm === "city" ? 0 : terrainHeight(0, 12, seedNum);
+    const spawnFloor = realm === "forest" ? terrainHeight(0, 12, seedNum) : 0;
     camera.position.set(0, spawnFloor + GROUND_HEIGHT, 12);
     playerPos.copy(camera.position); // chunk field reads this before first frame
     yawObject.current.rotation.y = 0;
@@ -227,7 +230,11 @@ export function Player() {
     camera.position.y += velocity.current.y * delta;
 
     const floor =
-      (realm === "city" ? 0 : terrainHeight(camera.position.x, camera.position.z, seedNum)) +
+      (realm === "forest"
+        ? terrainHeight(camera.position.x, camera.position.z, seedNum)
+        : realm === "rift"
+          ? dojoFloorHeight(camera.position.y, camera.position.x, camera.position.z)
+          : 0) +
       GROUND_HEIGHT;
     if (camera.position.y <= floor) {
       camera.position.y = floor;

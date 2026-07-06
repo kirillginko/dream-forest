@@ -22,9 +22,9 @@ import { Shards } from "../assets/Shards";
 import { Wisps } from "../assets/Wisps";
 import { DreamCity } from "./DreamCity";
 import { ForestCreatures } from "./ForestCreatures";
+import { DojoMaze } from "./DojoMaze";
 
 const FOREST_FOG_DENSITY = 0.028;
-const RIFT_FOG_DENSITY = 0.05;
 const CHUNK_RING = 1; // 3x3 grid of chunks around the player
 // Crossing a chunk boundary can newly require up to 5 tiles at once (a
 // diagonal step). Mounting them all in one React commit means one frame
@@ -232,6 +232,8 @@ function collidersFor(chunk: ChunkData): Collider[] {
   }
   add(chunk.circleStones, 0.75);
   add(chunk.pillars, 0.6, { skipToppled: true });
+  add(chunk.ruinWalls, 1.2, { skipToppled: true });
+  add(chunk.shrines, 1.7);
   add(chunk.rocks.filter((p) => p.scale > 1.1), 0.85);
   // Arch posts: two circles either side of the opening — the gap stays walkable.
   for (const p of chunk.arches) {
@@ -405,13 +407,14 @@ export function World() {
   );
 
   if (realm === "city") return <DreamCity seedNum={seedNum} />;
+  if (realm === "rift") return <DojoMaze seedNum={seedNum} />;
 
   return (
     <>
       <Atmosphere
         fogColor={palette.fog}
         skyColor={palette.sky}
-        baseDensity={realm === "rift" ? RIFT_FOG_DENSITY : FOREST_FOG_DENSITY}
+        baseDensity={FOREST_FOG_DENSITY}
       />
       <SkyDome
         horizon={palette.horizon}

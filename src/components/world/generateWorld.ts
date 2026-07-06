@@ -32,6 +32,10 @@ export interface ChunkData {
   grass: Placement[];
   arches: Placement[];
   pillars: Placement[];
+  /** Low remnants of rooms, courtyards, and processional boundaries. */
+  ruinWalls: Placement[];
+  /** Small non-interactive stepped altars left by former inhabitants. */
+  shrines: Placement[];
   /** Ritual stone ring — origin chunk only. */
   circleStones: Placement[];
   /** Dream-shift altar position, if this chunk has one. */
@@ -104,13 +108,23 @@ export function generateChunk(
   // almost entirely from them.
   const archCount = isRift
     ? 2 + Math.floor(rng() * 3)
-    : rng() < 0.45
-      ? 1 + Math.floor(rng() * 2)
+    : rng() < 0.72
+      ? 1 + Math.floor(rng() * 3)
       : 0;
   const pillarCount = isRift
     ? 5 + Math.floor(rng() * 7)
-    : rng() < 0.6
-      ? 1 + Math.floor(rng() * 4)
+    : rng() < 0.82
+      ? 2 + Math.floor(rng() * 5)
+      : 0;
+  const wallCount = isRift
+    ? 5 + Math.floor(rng() * 6)
+    : rng() < 0.76
+      ? 2 + Math.floor(rng() * 6)
+      : 0;
+  const shrineCount = isRift
+    ? 2 + Math.floor(rng() * 3)
+    : rng() < 0.48
+      ? 1 + Math.floor(rng() * 2)
       : 0;
 
   // Ritual stone ring around the origin clearing.
@@ -142,7 +156,7 @@ export function generateChunk(
       terrainHeight(CLEARING_CENTER.x, CLEARING_CENTER.z, worldSeedNum),
       CLEARING_CENTER.z,
     ];
-  } else if (!isRift && rng() < 0.18) {
+  } else if (!isRift && rng() < 0.28) {
     const x = minX + 20 + rng() * (CHUNK_SIZE - 40);
     const z = minZ + 20 + rng() * (CHUNK_SIZE - 40);
     crystal = [x, terrainHeight(x, z, worldSeedNum), z];
@@ -187,6 +201,8 @@ export function generateChunk(
     grass: isRift ? [] : scatter(260, { minScale: 0.6, maxScale: 1.5, inClearing: true }),
     arches: scatter(archCount, { minScale: 1.0, maxScale: 1.8 }),
     pillars: scatter(pillarCount, { minScale: 0.7, maxScale: 1.6, sidewaysChance: 0.25 }),
+    ruinWalls: scatter(wallCount, { minScale: 0.75, maxScale: 1.45, sidewaysChance: 0.12 }),
+    shrines: scatter(shrineCount, { minScale: 0.8, maxScale: 1.35 }),
     circleStones,
     crystal,
     shards,
