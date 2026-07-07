@@ -10,8 +10,8 @@ import { getDetailTextures, repeated } from "@/lib/textures";
 import { DojoAnimals, EpilogueCat } from "./DojoAnimals";
 import { soundEffects } from "@/lib/soundEffects";
 
-const GRID = 11;
-const CELL = 6;
+const GRID = 13;
+const CELL = 5.5;
 const WALL_HEIGHT = 5.4;
 const WALL_THICKNESS = 0.28;
 const START_X = 0;
@@ -144,6 +144,17 @@ function generateMaze(seedNum: number): MazeLayout {
   };
 }
 
+/** Generate several valid mazes and retain the one with the longest solved
+ * route. This prevents unlucky short runs while preserving seeded variety. */
+function generateChallengingMaze(seedNum: number): MazeLayout {
+  let best = generateMaze(seedNum);
+  for (let candidate = 1; candidate < 7; candidate++) {
+    const next = generateMaze(seedNum ^ Math.imul(candidate, 0x9e3779b1));
+    if (next.route.length > best.route.length) best = next;
+  }
+  return best;
+}
+
 function ExitThreshold() {
   const crossed = useRef(false);
   const x = DOJO_EXIT_X;
@@ -233,9 +244,14 @@ function StairThreshold({ level }: { level: number }) {
 
 export function DojoMaze({ seedNum }: { seedNum: number }) {
   const mazeEndingAt = useDreamStore((state) => state.mazeEndingAt);
+  const mazeRun = useDreamStore((state) => state.mazeRun);
   const levelLayouts = useMemo(
-    () => Array.from({ length: LEVELS }, (_, level) => generateMaze(seedNum ^ Math.imul(level + 1, 0x45d9f3b))),
-    [seedNum]
+    () => Array.from({ length: LEVELS }, (_, level) =>
+      generateChallengingMaze(
+        seedNum ^ Math.imul(level + 1, 0x45d9f3b) ^ Math.imul(mazeRun, 0x27d4eb2d)
+      )
+    ),
+    [mazeRun, seedNum]
   );
   const textures = useMemo(() => getDetailTextures(seedNum), [seedNum]);
   const floorMap = useMemo(() => makeTatamiTexture(seedNum), [seedNum]);

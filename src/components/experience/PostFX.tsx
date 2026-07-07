@@ -14,6 +14,7 @@ import {
 } from "@react-three/postprocessing";
 import { BlendFunction, NoiseEffect } from "postprocessing";
 import { audioLevels } from "@/lib/audio";
+import { LiquidMorph } from "./LiquidMorph";
 
 /**
  * The VHS dream layer: bloom makes the fungi/crystal glow bleed, chromatic
@@ -36,6 +37,7 @@ export function PostFX() {
 
   return (
     <EffectComposer>
+      <LiquidMorph />
       <Bloom intensity={1.1} luminanceThreshold={0.3} luminanceSmoothing={0.5} mipmapBlur />
       <HueSaturation saturation={0.3} />
       <ChromaticAberration offset={rgbOffset} />

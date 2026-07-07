@@ -13,9 +13,13 @@ import {
   unregisterShard,
 } from "@/lib/shardTracker";
 import { soundEffects } from "@/lib/soundEffects";
+import { triggerLiquidMorph } from "@/lib/visualEffects";
 
 const COLLECT_RADIUS = 2.6;
 const BEAM_HEIGHT = 9;
+// A realm swap mounts destination shards before Player has necessarily moved
+// to its new spawn. Keep pickups disarmed until that handoff has settled.
+const TRANSITION_PICKUP_DELAY_MS = 900;
 
 /**
  * Dream shards: bright collectible pickups scattered through the
@@ -63,6 +67,12 @@ export function ShardPickups({
   // whenever the component re-renders, so `collected` here is never stale.
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
+    const dream = useDreamStore.getState();
+    const pickupsArmed =
+      !dream.worldTransitioning &&
+      (dream.shiftedAt === 0 || Date.now() - dream.shiftedAt >= TRANSITION_PICKUP_DELAY_MS);
+    let collectedThisFrame = false;
+
     placements.forEach((p, i) => {
       if (collected[i] || isShardCollected(shardId(i))) return;
       const group = groups.current[i];
@@ -77,7 +87,8 @@ export function ShardPickups({
         (core.material as THREE.MeshStandardMaterial).emissiveIntensity = 2.2 + pulse;
       }
       const d = Math.hypot(playerPos.x - p.position[0], playerPos.z - p.position[2]);
-      if (d < COLLECT_RADIUS) {
+      if (pickupsArmed && !collectedThisFrame && d < COLLECT_RADIUS) {
+        collectedThisFrame = true;
         setCollected((prev) => {
           if (prev[i]) return prev;
           const next = [...prev];
@@ -85,8 +96,9 @@ export function ShardPickups({
           return next;
         });
         markShardCollected(shardId(i));
+        triggerLiquidMorph(false);
         soundEffects.play("shard", 0.72);
-        useDreamStore.getState().collectShard();
+        dream.collectShard();
       }
     });
   });

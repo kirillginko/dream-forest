@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { audioEngine } from "@/lib/audio";
-import { playerPos, playerYaw, useDreamStore, SHARD_GOAL } from "@/lib/store";
+import { playerPos, useDreamStore, SHARD_GOAL } from "@/lib/store";
 import { CITY_PALETTE, paletteForSeed, RIFT_PALETTE } from "../world/palettes";
 import { nearestShard } from "@/lib/shardTracker";
 import { DOJO_EXIT_X, DOJO_EXIT_Z } from "../world/DojoMaze";
@@ -11,9 +11,8 @@ const transportBtn =
   "pointer-events-auto border border-amber-200/40 px-2 py-1 text-[10px] tracking-[0.2em] " +
   "text-amber-100/80 bg-black/40 hover:bg-amber-100/10 hover:border-amber-200/70 transition-colors";
 
-function WaypointCompass({ exit = false }: { exit?: boolean }) {
+function WaypointReadout({ exit = false }: { exit?: boolean }) {
   const compass = useRef<HTMLDivElement>(null);
-  const needle = useRef<HTMLDivElement>(null);
   const distance = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
@@ -29,12 +28,6 @@ function WaypointCompass({ exit = false }: { exit?: boolean }) {
       if (compass.current) compass.current.style.opacity = "1";
       const dx = target.x - playerPos.x;
       const dz = target.z - playerPos.z;
-      const targetYaw = Math.atan2(-dx, -dz);
-      const relativeAngle = targetYaw - playerYaw.value;
-      if (needle.current) {
-        // CSS rotates clockwise, while the world yaw increases to the left.
-        needle.current.style.transform = `rotate(${-relativeAngle}rad)`;
-      }
       if (distance.current) {
         distance.current.textContent = `${Math.round(Math.hypot(dx, dz))}M`;
       }
@@ -46,18 +39,8 @@ function WaypointCompass({ exit = false }: { exit?: boolean }) {
   return (
     <div
       ref={compass}
-      className="absolute left-1/2 top-4 flex -translate-x-1/2 flex-col items-center gap-1 transition-opacity"
+      className="absolute left-1/2 top-[152px] flex -translate-x-1/2 flex-col items-center transition-opacity"
     >
-      <div className="relative h-14 w-24 border-x border-cyan-100/15 bg-gradient-to-b from-black/50 to-transparent shadow-[0_0_18px_rgba(84,247,255,0.1)]">
-        <div
-          ref={needle}
-          className="absolute left-[28px] top-1 h-10 w-10 transition-transform duration-100"
-        >
-          <div className="absolute left-1/2 top-0 h-0 w-0 -translate-x-1/2 border-x-[7px] border-b-[24px] border-x-transparent border-b-cyan-200 drop-shadow-[0_0_5px_#54f7ff]" />
-          <div className="absolute left-1/2 top-[18px] h-3 w-1 -translate-x-1/2 bg-cyan-200/70" />
-        </div>
-        <div className="absolute bottom-1 left-1/2 h-px w-14 -translate-x-1/2 bg-gradient-to-r from-transparent via-cyan-100/40 to-transparent" />
-      </div>
       <div className="bg-black/45 px-2 py-0.5 text-[8px] tracking-[0.22em] text-cyan-100/65">
         {exit ? "MAZE EXIT" : "NEXT SHARD"} · <span ref={distance}>NO SIGNAL</span>
       </div>
@@ -73,7 +56,6 @@ export function Hud() {
   const locked = useDreamStore((s) => s.locked);
   const lookMode = useDreamStore((s) => s.lookMode);
   const nearInteract = useDreamStore((s) => s.nearInteract);
-  const shiftedAt = useDreamStore((s) => s.shiftedAt);
   const floorTransitionAt = useDreamStore((s) => s.floorTransitionAt);
   const mazeEndingAt = useDreamStore((s) => s.mazeEndingAt);
   const musicPlaying = useDreamStore((s) => s.musicPlaying);
@@ -130,10 +112,6 @@ export function Hud() {
         }}
       />
 
-      {/* dream-shift flash */}
-      {shiftedAt > 0 && (
-        <div key={shiftedAt} className="absolute inset-0 animate-dream-flash bg-white" />
-      )}
       {floorTransitionAt > 0 && (
         <div
           key={floorTransitionAt}
@@ -166,7 +144,7 @@ export function Hud() {
         )}
       </div>
 
-      <WaypointCompass exit={realm === "rift"} />
+      <WaypointReadout exit={realm === "rift"} />
 
       {/* bottom-left: music transport */}
       <div className="absolute bottom-4 left-4 flex items-center gap-2">

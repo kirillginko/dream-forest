@@ -263,6 +263,8 @@ function Chunk({
   cx: number;
   cz: number;
 }) {
+  const [detailStage, setDetailStage] = useState(0);
+  const mountedFrames = useRef(0);
   const chunk = useMemo(
     () => generateChunk(seedNum, cx, cz, palette, realm),
     [seedNum, cx, cz, palette, realm]
@@ -275,20 +277,32 @@ function Chunk({
     return () => removeColliders(chunk.key);
   }, [chunk]);
 
+  // Keep the realm-swap frame light. Terrain arrives first, core dressing on
+  // the second frame, then animated/model-heavy details once the transition
+  // shader is already covering the screen.
+  useFrame(() => {
+    mountedFrames.current += 1;
+    if (mountedFrames.current === 2) setDetailStage(1);
+    else if (mountedFrames.current === 5) setDetailStage(2);
+    else if (mountedFrames.current === 12) setDetailStage(3);
+  });
+
   return (
     <group>
       <TerrainMesh world={chunk} />
-      <Grass world={chunk} />
-      <Trees world={chunk} />
-      <GiantMushrooms world={chunk} />
-      <Rocks world={chunk} />
-      <Ruins world={chunk} />
-      <Shards world={chunk} palette={palette} />
-      {realm === "forest" && <ForestCreatures world={chunk} palette={palette} />}
-      <Suspense fallback={null}>
-        <ModelMushrooms world={chunk} />
-      </Suspense>
-      {chunk.crystal && (
+      {detailStage >= 1 && <Trees world={chunk} />}
+      {detailStage >= 1 && <GiantMushrooms world={chunk} />}
+      {detailStage >= 1 && <Rocks world={chunk} />}
+      {detailStage >= 2 && <Grass world={chunk} />}
+      {detailStage >= 2 && <Ruins world={chunk} />}
+      {detailStage >= 2 && <Shards world={chunk} palette={palette} />}
+      {detailStage >= 3 && realm === "forest" && <ForestCreatures world={chunk} palette={palette} />}
+      {detailStage >= 3 && (
+        <Suspense fallback={null}>
+          <ModelMushrooms world={chunk} />
+        </Suspense>
+      )}
+      {detailStage >= 2 && chunk.crystal && (
         <DreamCrystal
           position={chunk.crystal}
           palette={palette}

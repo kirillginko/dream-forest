@@ -21,7 +21,13 @@ interface AnimalData {
   route: DojoRoutePoint[];
 }
 
-function RoamingAnimal({ data, epilogue = false }: { data: AnimalData; epilogue?: boolean }) {
+function RoamingAnimal({
+  data,
+  epilogue = false,
+}: {
+  data: AnimalData;
+  epilogue?: boolean;
+}) {
   const url = data.kind === "cat" ? CAT_URL : CHICKEN_URL;
   const gltf = useGLTF(url);
   const root = useRef<THREE.Group>(null);
@@ -34,18 +40,24 @@ function RoamingAnimal({ data, epilogue = false }: { data: AnimalData; epilogue?
       // Animated bounds in these Sketchfab exports are stale until the
       // mixer advances, which otherwise culls the entire animal.
       object.frustumCulled = false;
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
       const brightened = materials.map((material) => {
         if (!(material instanceof THREE.MeshStandardMaterial)) return material;
         const copy = material.clone();
         return copy;
       });
-      object.material = Array.isArray(object.material) ? brightened : brightened[0];
+      object.material = Array.isArray(object.material)
+        ? brightened
+        : brightened[0];
     });
     return cloned;
   }, [gltf.scene]);
   const { actions, names } = useAnimations(gltf.animations, model);
-  const [embeddedTexture, setEmbeddedTexture] = useState<THREE.Texture | null>(null);
+  const [embeddedTexture, setEmbeddedTexture] = useState<THREE.Texture | null>(
+    null,
+  );
   // Both GLBs already bake a 0.01 FBX-to-meter conversion into their root
   // hierarchy. Keep the display scale near 1; applying 0.01 again makes the
   // animals only a centimeter tall.
@@ -53,20 +65,26 @@ function RoamingAnimal({ data, epilogue = false }: { data: AnimalData; epilogue?
 
   useEffect(() => {
     let active = true;
-    void gltf.parser.getDependency("texture", 0).then((texture: THREE.Texture) => {
-      if (!active) return;
-      texture.colorSpace = THREE.SRGBColorSpace;
-      texture.needsUpdate = true;
-      setEmbeddedTexture(texture);
-    });
-    return () => { active = false; };
+    void gltf.parser
+      .getDependency("texture", 0)
+      .then((texture: THREE.Texture) => {
+        if (!active) return;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        texture.needsUpdate = true;
+        setEmbeddedTexture(texture);
+      });
+    return () => {
+      active = false;
+    };
   }, [gltf.parser]);
 
   useEffect(() => {
     if (!embeddedTexture) return;
     model.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return;
-      const materials = Array.isArray(object.material) ? object.material : [object.material];
+      const materials = Array.isArray(object.material)
+        ? object.material
+        : [object.material];
       for (const material of materials) {
         if (!(material instanceof THREE.MeshStandardMaterial)) continue;
         material.color.set("#ffffff");
@@ -85,10 +103,20 @@ function RoamingAnimal({ data, epilogue = false }: { data: AnimalData; epilogue?
       const lower = name.toLowerCase();
       return lower.includes("walk") && !lower.includes("_rm");
     });
-    const action = walkName ? actions[walkName] : names.length ? actions[names[0]] : undefined;
-    action?.reset().fadeIn(0.2).play();
-    return () => { action?.fadeOut(0.15); };
-  }, [actions, names]);
+    const action = walkName
+      ? actions[walkName]
+      : names.length
+        ? actions[names[0]]
+        : undefined;
+    action
+      ?.reset()
+      .setEffectiveTimeScale(epilogue ? 0.85 : 0.68)
+      .fadeIn(0.2)
+      .play();
+    return () => {
+      action?.fadeOut(0.15);
+    };
+  }, [actions, epilogue, names]);
 
   useEffect(() => {
     if (!epilogue || !(camera instanceof THREE.PerspectiveCamera)) return;
@@ -107,8 +135,7 @@ function RoamingAnimal({ data, epilogue = false }: { data: AnimalData; epilogue?
       camera.getWorldDirection(forward);
       forward.y = 0;
       forward.normalize();
-      root.current.position.copy(camera.position)
-        .addScaledVector(forward, 4.2);
+      root.current.position.copy(camera.position).addScaledVector(forward, 4.2);
       root.current.position.y = camera.position.y - 1.28;
       const right = new THREE.Vector3(-forward.z, 0, forward.x);
       root.current.rotation.y = Math.atan2(right.x, right.z);
@@ -134,9 +161,15 @@ function RoamingAnimal({ data, epilogue = false }: { data: AnimalData; epilogue?
     const vz = (to.z - from.z) * direction;
     root.current.position.set(x, data.y, z);
     root.current.rotation.y = Math.atan2(vx, vz);
-    const close = Math.abs(playerPos.y - data.y) < 2.2 && Math.hypot(playerPos.x - x, playerPos.z - z) < 3.1;
+    const close =
+      Math.abs(playerPos.y - data.y) < 2.2 &&
+      Math.hypot(playerPos.x - x, playerPos.z - z) < 3.1;
     if (close && !nearPlayer.current) {
-      soundEffects.play(data.kind, data.kind === "cat" ? 0.58 : 0.48, 0.96 + (data.phase % 0.08));
+      soundEffects.play(
+        data.kind,
+        data.kind === "cat" ? 0.58 : 0.48,
+        0.96 + (data.phase % 0.08),
+      );
     }
     nearPlayer.current = close;
   });
@@ -179,8 +212,11 @@ export function DojoAnimals({
           kind: (level + index) % 2 === 0 ? "cat" : "chicken",
           level,
           y: level * levelHeight + 0.03,
-          phase: ((seedNum % 19) * 0.31 + level * 3.7 + index * Math.max(4, route.length * 0.42)),
-          speed: 0.42 + index * 0.08,
+          phase:
+            (seedNum % 19) * 0.31 +
+            level * 3.7 +
+            index * Math.max(4, route.length * 0.42),
+          speed: 0.25 + index * 0.05,
           route,
         });
       }
@@ -189,15 +225,20 @@ export function DojoAnimals({
   }, [levelHeight, levels, routes, seedNum]);
 
   useFrame(() => {
-    const nextLevel = Math.max(0, Math.min(levels - 1, Math.round((playerPos.y - 1.75) / levelHeight)));
+    const nextLevel = Math.max(
+      0,
+      Math.min(levels - 1, Math.round((playerPos.y - 1.75) / levelHeight)),
+    );
     if (nextLevel === activeLevelRef.current) return;
     activeLevelRef.current = nextLevel;
     setActiveLevel(nextLevel);
   });
 
-  return animals.filter((animal) => animal.level === activeLevel).map((animal, index) => (
-    <RoamingAnimal key={`${animal.kind}-${index}`} data={animal} />
-  ));
+  return animals
+    .filter((animal) => animal.level === activeLevel)
+    .map((animal, index) => (
+      <RoamingAnimal key={`${animal.kind}-${index}`} data={animal} />
+    ));
 }
 
 useGLTF.preload(CAT_URL);

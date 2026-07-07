@@ -8,6 +8,7 @@ import { PostFX } from "./PostFX";
 import { Hud } from "./Hud";
 import { useDreamStore } from "@/lib/store";
 import { soundEffects } from "@/lib/soundEffects";
+import { WaypointArrow } from "./WaypointArrow";
 
 function TransitionAudio() {
   const shiftedAt = useDreamStore((state) => state.shiftedAt);
@@ -29,6 +30,7 @@ export default function Experience() {
       >
         <World />
         <Player />
+        <WaypointArrow />
         <PostFX />
       </Canvas>
       <Hud />
