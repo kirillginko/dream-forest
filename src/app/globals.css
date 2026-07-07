@@ -1,4 +1,7 @@
-@import "tailwindcss";
+/* Restrict Tailwind v4's content scan to application source. Large GLB and
+   audio assets live in public/ and must never be read by the PostCSS worker. */
+@import "tailwindcss" source(none);
+@source "../";
 
 html,
 body {
